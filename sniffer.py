@@ -42,12 +42,9 @@ def escucharTrafico(eth_opc, filtro):
 
         raw_data, addr = conn.recvfrom(65535)
         dest_mac, src_mac, eth_proto, data = ethernet_frame(raw_data)
-        """
-        print("eth_opc  ::",eth_opc,"::")
-        print("eth_proto::",eth_proto,"::")
-        """
+
         # 8 para IPv4
-        if eth_proto == 8 and eth_opc == None or eth_opc == 8:
+        if eth_proto == 8 and eth_opc == None or eth_proto == 8 and eth_opc == 8 :
             (version, header_length, ttl, proto, src, target, data) = ipv4_packet(data)
 
             print('\tPaquete IPv4:')
@@ -165,6 +162,7 @@ def escucharTrafico(eth_opc, filtro):
             pcap.write(raw_data)
             print("\n\t=============================================================================")
 
+        # Otro protocolo Ethernet
         elif eth_opc == None:
             cont += 1
             print('\n\tTrama Ethernet: # ',cont)
@@ -258,6 +256,28 @@ def get_mac_addr(bytes_addr):
     bytes_str = map('{:02x}'.format, bytes_addr)
     return ':'.join(bytes_str).upper()
 
+#Regresar correctamente formateada la direccion IPv6
+def ipv6(bytes_addr):
+    addr = ''
+    uno = False
+    dos = False
+
+    i = 0
+
+    bytes_str = map('{:02x}'.format, bytes_addr)
+
+    for byte in bytes_str:
+        byte_str = str(byte)
+
+        if byte != '00':
+
+            addr += byte_str
+
+        i += 0
+
+    return addr
+
+
 #Desempaquetado de la IPv4
 def ipv4_packet(data):
     version_header_length = data[0]
@@ -276,14 +296,8 @@ def ipv6_packet(data):
     version = version_header_length >> 4
     header_length = (version_header_length & 15) * 4
     payload_length, proto, hop_limit, src, target = struct.unpack('! 4x H B B 16s 16s', data[:40])
-
     return version, payload_length, proto, hop_limit, ipv6(src), ipv6(target), data[40:]
 
-#Regresar correctamente formateada la direccion IPv6
-def ipv6(bytes_addr):
-
-    bytes_str = map('{:04x}'.format, bytes_addr)
-    return ':'.join(bytes_str)
 
 #Desempaquetado del ICMP
 def icmp_packet(data):
