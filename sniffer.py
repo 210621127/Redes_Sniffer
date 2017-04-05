@@ -148,19 +148,57 @@ def escucharTrafico(eth_opc, filtro):
 
         # 56710 para iPv6
         elif eth_proto == 56710 and eth_opc == None or eth_proto == 56710 and eth_opc == 56710:
-            cont += 1
-            print('\n\tTrama Ethernet: # ',cont)
-            print('\tMAC Fuente: {}, MAC Destino: {}, Ether type: {}'.format(src_mac, dest_mac, eth_proto))
-            print('\tPaquete iPv6:')
 
             version, payload_length, proto, hop_limit, src, target, data = ipv6_packet(data)
-            print('\t\tVersion: {}, Carga util: {}, Protocolo: {}'.format(version, payload_length, proto))
-            print('\t\tLimite de saltos: {}'.format(hop_limit))
-            print('\t\tFuente:  {}'.format(src))
-            print('\t\tDestino: {}'.format(target))
+            print('\tPaquete IPv6:')
+            print('\t   Version: {}, Carga util: {}, Protocolo: {}'.format(version, payload_length, proto))
+            print('\t   Limite de saltos: {}'.format(hop_limit))
+            print('\t   Fuente:  {}'.format(src))
+            print('\t   Destino: {}'.format(target))
 
-            pcap.write(raw_data)
-            print("\n\t=============================================================================")
+            # 17 UDP (User Datagram Protocol) para IPv6
+            if proto == 17:
+                cont += 1
+                print('\n\tTrama Ethernet: # ',cont)
+                print('\tMAC Fuente: {}, MAC Destino: {}, Ether type: {}'.format(src_mac, dest_mac, eth_proto))
+
+                src_port, dest_port, length, data = udp_segment(data)
+                print('\t    Segmento UDPv6: ')
+                print('\t\tPuerto de Origen: {}, Puerto Destino: {}, Longitud: {}'.format(src_port,dest_port,length,)+ ' bytes')
+                pcap.write(raw_data)
+                print("\n\t=============================================================================")
+
+            # 58 ICMPv6 (Internet Control Message Protocol) para IPv6
+            elif proto == 58:
+                cont += 1
+                print('\n\tTrama Ethernet: # ',cont)
+                print('\tMAC Fuente: {}, MAC Destino: {}, Ether type: {}'.format(src_mac, dest_mac, eth_proto))
+
+                icmp_type, code, checksum, data = icmp_packet(data)
+                if icmp_type == 1:
+                    icmp_type = 'Destino inalcanzable (1)'
+                if code == 4:
+                    code = 'Puerto inalcanzable (4)'
+
+                print('\t    Paquete ICMPv6: ')
+                print('\t\tTipo: {}, Codigo: {}, Checksum: {}'.format(icmp_type,code, checksum))
+                print('\t\tDatos:')
+                print(format_multi_line('\t\t* ', data))
+                pcap.write(raw_data)
+                print("\n\t=============================================================================")
+
+
+            # Otro IPv6
+            else:
+                cont += 1
+                print('\n\tTrama Ethernet: # ',cont)
+                print('\tMAC Fuente: {}, MAC Destino: {}, Ether type: {}'.format(src_mac, dest_mac, eth_proto))
+
+                print('\tOtro Protocolo IPv6:')
+                print(format_multi_line('\t\t * ',data))
+                pcap.write(raw_data)
+                print("\n\t=============================================================================")
+
 
         # Otro protocolo Ethernet
         elif eth_opc == None:
@@ -258,23 +296,41 @@ def get_mac_addr(bytes_addr):
 
 #Regresar correctamente formateada la direccion IPv6
 def ipv6(bytes_addr):
+    addr_doc = ''
     addr = ''
-    uno = False
-    dos = False
-
     i = 0
+    flag_u = False
+    flag_d = False
 
     bytes_str = map('{:02x}'.format, bytes_addr)
 
     for byte in bytes_str:
-        byte_str = str(byte)
+        addr_doc += byte
+        if i % 2 and i < 15:
+            addr_doc += ':'
+        i += 1
+    i = 0
+    for byte in addr_doc:
 
-        if byte != '00':
+        if byte != '0':
 
-            addr += byte_str
+            if byte == ':':
+                if flag_u == False and flag_d == False:
+                    addr += byte
+                    flag_u = True
 
-        i += 0
+                elif flag_u == True and flag_d == False:
+                    addr += byte
+                    flag_d = True
+            else:
+                addr += byte
+                flag_u = False
+                flag_d = False
 
+        elif i > 0 and addr_doc[i-1] != '0' and addr_doc[i-1] != ':':
+            addr += byte
+
+        i += 1
     return addr
 
 
