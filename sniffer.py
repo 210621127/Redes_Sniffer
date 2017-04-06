@@ -4,6 +4,7 @@ import textwrap
 import time
 import os
 import threading
+####
 
 stop = True
 
@@ -47,16 +48,16 @@ def escucharTrafico(eth_opc, filtro):
         if eth_proto == 8 and eth_opc == None or eth_proto == 8 and eth_opc == 8 :
             (version, header_length, ttl, proto, src, target, data) = ipv4_packet(data)
 
-            print('\tPaquete IPv4:')
-            print('\t\tVersion: {}, Longitud del encabezado: {}, TTL: {}'.format(version, header_length, ttl))
-            print('\t\tProtocolo: {}, Fuente: {} Destino: {}'.format(proto, src, target))
 
             # 1 ICMP (Internet Control Message Protocol)
-            if proto == 1:
+
+            if proto == 1 and filtro == None or  proto == 1 and filtro == 1:
                 cont += 1
                 print('\n\tTrama Ethernet: # ',cont)
                 print('\tMAC Fuente: {}, MAC Destino: {}, Ether type: {}'.format(src_mac, dest_mac, eth_proto))
-
+                print('\tPaquete IPv4:')
+                print('\t\tVersion: {}, Longitud del encabezado: {}, TTL: {}'.format(version, header_length, ttl))
+                print('\t\tProtocolo: {}, Fuente: {} Destino: {}'.format(proto, src, target))
                 icmp_type, code, checksum, data = icmp_packet(data)
                 print('\t    Paquete ICMP: ')
                 print('\t\tTipo: {}, Codigo: {}, Checksum: {}'.format(icmp_type,code, checksum))
@@ -66,11 +67,13 @@ def escucharTrafico(eth_opc, filtro):
                 print("\n\t=============================================================================")
 
             # 6 TCP (Transmission Control Protocol)
-            elif proto == 6:
+            elif proto == 6 and filtro == None or proto == 6 and filtro == 6:
                 cont += 1
                 print('\n\tTrama Ethernet: # ',cont)
                 print('\tMAC Fuente: {}, MAC Destino: {}, Ether type: {}'.format(src_mac, dest_mac, eth_proto))
-
+                print('\tPaquete IPv4:')
+                print('\t\tVersion: {}, Longitud del encabezado: {}, TTL: {}'.format(version, header_length, ttl))
+                print('\t\tProtocolo: {}, Fuente: {} Destino: {}'.format(proto, src, target))
                 (src_port, dest_port, sequence, acknowledgment, flag_urg, flag_ack, flag_psh, flag_rst, flag_syn, flag_fin, data) = tcp_segment(data)
                 print('\t    Segmento TCP: ')
                 print('\t\tPuerto de Origen: {}, Puerto Destino: {}'.format(src_port,dest_port))
@@ -98,7 +101,7 @@ def escucharTrafico(eth_opc, filtro):
                 print("\n\t=============================================================================")
 
             # 17 UDP (User Datagram Protocol)
-            elif proto == 17:
+            elif proto == 17 and filtro == None or proto == 17 and filtro == 17:
                 cont += 1
                 print('\n\tTrama Ethernet: # ',cont)
                 print('\tMAC Fuente: {}, MAC Destino: {}, Ether type: {}'.format(src_mac, dest_mac, eth_proto))
@@ -111,14 +114,17 @@ def escucharTrafico(eth_opc, filtro):
 
             # Otro IPv4
             else:
-                cont += 1
-                print('\n\tTrama Ethernet: # ',cont)
-                print('\tMAC Fuente: {}, MAC Destino: {}, Ether type: {}'.format(src_mac, dest_mac, eth_proto))
-
-                print('\tOtro Protocolo IPv4:')
-                print(format_multi_line('\t\t * ',data))
-                pcap.write(raw_data)
-                print("\n\t=============================================================================")
+                if filtro == None:
+                    cont += 1
+                    print('\n\tTrama Ethernet: # ',cont)
+                    print('\tMAC Fuente: {}, MAC Destino: {}, Ether type: {}'.format(src_mac, dest_mac, eth_proto))
+                    print('\tPaquete IPv4:')
+                    print('\t\tVersion: {}, Longitud del encabezado: {}, TTL: {}'.format(version, header_length, ttl))
+                    print('\t\tProtocolo: {}, Fuente: {} Destino: {}'.format(proto, src, target))
+                    print('\tOtro Protocolo IPv4:')
+                    print(format_multi_line('\t\t * ',data))
+                    pcap.write(raw_data)
+                    print("\n\t=============================================================================")
 
         # 1544 para ARP
         elif eth_proto == 1544 and eth_opc == None or eth_proto == 1544 and eth_opc == 1544:
@@ -150,18 +156,17 @@ def escucharTrafico(eth_opc, filtro):
         elif eth_proto == 56710 and eth_opc == None or eth_proto == 56710 and eth_opc == 56710:
 
             version, payload_length, proto, hop_limit, src, target, data = ipv6_packet(data)
-            print('\tPaquete IPv6:')
-            print('\t   Version: {}, Carga util: {}, Protocolo: {}'.format(version, payload_length, proto))
-            print('\t   Limite de saltos: {}'.format(hop_limit))
-            print('\t   Fuente:  {}'.format(src))
-            print('\t   Destino: {}'.format(target))
 
             # 17 UDP (User Datagram Protocol) para IPv6
-            if proto == 17:
+            if proto == 17 and filtro == None or proto == 17 and filtro == 17:
                 cont += 1
                 print('\n\tTrama Ethernet: # ',cont)
                 print('\tMAC Fuente: {}, MAC Destino: {}, Ether type: {}'.format(src_mac, dest_mac, eth_proto))
-
+                print('\tPaquete IPv6:')
+                print('\t   Version: {}, Carga util: {}, Protocolo: {}'.format(version, payload_length, proto))
+                print('\t   Limite de saltos: {}'.format(hop_limit))
+                print('\t   Fuente:  {}'.format(src))
+                print('\t   Destino: {}'.format(target))
                 src_port, dest_port, length, data = udp_segment(data)
                 print('\t    Segmento UDPv6: ')
                 print('\t\tPuerto de Origen: {}, Puerto Destino: {}, Longitud: {}'.format(src_port,dest_port,length,)+ ' bytes')
@@ -169,17 +174,20 @@ def escucharTrafico(eth_opc, filtro):
                 print("\n\t=============================================================================")
 
             # 58 ICMPv6 (Internet Control Message Protocol) para IPv6
-            elif proto == 58:
+            elif proto == 58 and filtro == None or proto == 58 and filtro == 58:
                 cont += 1
                 print('\n\tTrama Ethernet: # ',cont)
                 print('\tMAC Fuente: {}, MAC Destino: {}, Ether type: {}'.format(src_mac, dest_mac, eth_proto))
-
+                print('\tPaquete IPv6:')
+                print('\t   Version: {}, Carga util: {}, Protocolo: {}'.format(version, payload_length, proto))
+                print('\t   Limite de saltos: {}'.format(hop_limit))
+                print('\t   Fuente:  {}'.format(src))
+                print('\t   Destino: {}'.format(target))
                 icmp_type, code, checksum, data = icmp_packet(data)
                 if icmp_type == 1:
                     icmp_type = 'Destino inalcanzable (1)'
                 if code == 4:
                     code = 'Puerto inalcanzable (4)'
-
                 print('\t    Paquete ICMPv6: ')
                 print('\t\tTipo: {}, Codigo: {}, Checksum: {}'.format(icmp_type,code, checksum))
                 print('\t\tDatos:')
@@ -187,18 +195,21 @@ def escucharTrafico(eth_opc, filtro):
                 pcap.write(raw_data)
                 print("\n\t=============================================================================")
 
-
             # Otro IPv6
             else:
-                cont += 1
-                print('\n\tTrama Ethernet: # ',cont)
-                print('\tMAC Fuente: {}, MAC Destino: {}, Ether type: {}'.format(src_mac, dest_mac, eth_proto))
-
-                print('\tOtro Protocolo IPv6:')
-                print(format_multi_line('\t\t * ',data))
-                pcap.write(raw_data)
-                print("\n\t=============================================================================")
-
+                if filtro == None:
+                    cont += 1
+                    print('\n\tTrama Ethernet: # ',cont)
+                    print('\tMAC Fuente: {}, MAC Destino: {}, Ether type: {}'.format(src_mac, dest_mac, eth_proto))
+                    print('\tPaquete IPv6:')
+                    print('\t   Version: {}, Carga util: {}, Protocolo: {}'.format(version, payload_length, proto))
+                    print('\t   Limite de saltos: {}'.format(hop_limit))
+                    print('\t   Fuente:  {}'.format(src))
+                    print('\t   Destino: {}'.format(target))
+                    print('\tOtro Protocolo IPv6:')
+                    print(format_multi_line('\t\t * ',data))
+                    pcap.write(raw_data)
+                    print("\n\t=============================================================================")
 
         # Otro protocolo Ethernet
         elif eth_opc == None:
@@ -223,7 +234,77 @@ def funcionHilo(eth_opc, filtro):
     stop = True
     time.sleep(2)
 
-#Filtrado por protocolo
+#Filtrado por protocolo para IPv4
+def filtrado_IPv4():
+    global stop
+    os.system("clear")
+    print("\n\t* * Filtrado por protocolo para IPv4* *")
+    print("\n\t1) Todos los protocolos de iPv4 ")
+    print("\n\t2) ICMP")
+    print("\n\t3) TCP")
+    print("\n\t4) UDP")
+    print("\n\t0) Regresar")
+    opc = input ("\n\tIngrese una opcion: ")
+
+    if opc.isdigit() == True:
+        opc = int(opc)
+        if opc == 1:
+            stop = False
+            while stop == False:
+                funcionHilo(socket.ntohs(0x0800), None)
+        elif opc == 2:
+            stop = False
+            while stop == False:
+                funcionHilo(socket.ntohs(0x0800), 1)
+        elif opc == 3:
+            stop = False
+            while stop == False:
+                funcionHilo(socket.ntohs(0x0800), 6)
+        elif opc == 4:
+            stop = False
+            while stop == False:
+                funcionHilo(socket.ntohs(0x0800), 17)
+
+        elif opc == 0:
+            return
+    else:
+        print("\n\t(!) Seleccione una de las opciones del menu...")
+        input("\n\tPresione < ENTER > para continuar...")
+
+#Filtrado por protocolo para IPv6
+def filtrado_IPv6():
+    global stop
+    os.system("clear")
+    print("\n\t* * Filtrado por protocolo para IPv6* *")
+    print("\n\t1) Todos los protocolos de iPv6 ")
+    print("\n\t2) UDPv6")
+    print("\n\t3) ICMPv6")
+    print("\n\t0) Regresar")
+    opc = input ("\n\tIngrese una opcion: ")
+
+    if opc.isdigit() == True:
+        opc = int(opc)
+        if opc == 1:
+            stop = False
+            while stop == False:
+                funcionHilo(socket.ntohs(0x86DD), None)
+        elif opc == 2:
+            stop = False
+            while stop == False:
+                funcionHilo(socket.ntohs(0x86DD), 17)
+        elif opc == 3:
+            stop = False
+            while stop == False:
+                funcionHilo(socket.ntohs(0x86DD), 58)
+
+        elif opc == 0:
+            return
+    else:
+        print("\n\t(!) Seleccione una de las opciones del menu...")
+        input("\n\tPresione < ENTER > para continuar...")
+
+
+#Filtrado por protocolo general
 def filtrado():
     global stop
     os.system("clear")
@@ -236,17 +317,13 @@ def filtrado():
     if opc.isdigit() == True:
         opc = int(opc)
         if opc == 1:
-            stop = False
-            while stop == False:
-                funcionHilo(socket.ntohs(0x0800), None)
+            filtrado_IPv4()
         elif opc == 2:
             stop = False
             while stop == False:
                 funcionHilo(socket.ntohs(0x0806), None)
         elif opc == 3:
-            stop = False
-            while stop == False:
-                funcionHilo(socket.ntohs(0x86DD), None)
+            filtrado_IPv6()
         elif opc == 0:
             return
     else:
